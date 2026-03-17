@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bedrock Chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f12;
+      --surface: #13161b;
+      --surface2: #1a1e25;
+      --border: rgba(255,255,255,0.07);
+      --border2: rgba(255,255,255,0.12);
+      --text: #e8eaed;
+      --text2: #8b9099;
+      --text3: #555d6b;
+      --accent: #00c896;
+      --accent-dim: rgba(0,200,150,0.12);
+      --accent-glow: rgba(0,200,150,0.25);
+      --user-bg: #1a2f28;
+      --user-border: rgba(0,200,150,0.2);
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'IBM Plex Sans', sans-serif;
+      --radius: 12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0;
+    }
+
+    /* Header */
+    header {
+      width: 100%;
+      max-width: 760px;
+      padding: 28px 24px 0;
+      animation: fadeDown 0.5s ease both;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 20px;
+      border-bottom: 0.5px solid var(--border);
+    }
+
+    .brand { display: flex; align-items: center; gap: 10px; }
+
+    .brand-icon {
+      width: 34px; height: 34px;
+      background: var(--accent-dim);
+      border: 0.5px solid var(--accent-glow);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .brand-icon svg { width: 16px; height: 16px; fill: var(--accent); }
+
+    .brand-name {
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: 0.02em;
+    }
+
+    .brand-name span { color: var(--accent); }
+
+    .status-pill {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 12px;
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: 99px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text2);
+    }
+
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    .meta-row {
+      display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap;
+    }
+
+    .tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text3);
+      padding: 3px 8px;
+      border: 0.5px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface);
+    }
+
+    /* Chat area */
+    #chat-container {
+      width: 100%;
+      max-width: 760px;
+      flex: 1;
+      padding: 0 24px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #messages {
+      flex: 1;
+      padding: 24px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 400px;
+      max-height: 55vh;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border2) transparent;
+    }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 48px 0;
+      color: var(--text3);
+    }
+
+    .empty-icon {
+      width: 48px; height: 48px;
+      border: 0.5px solid var(--border2);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .empty-icon svg { width: 22px; height: 22px; stroke: var(--text3); fill: none; stroke-width: 1.5; }
+
+    .empty-state p { font-size: 13px; font-family: var(--mono); }
+
+    .suggestions {
+      display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 4px;
+    }
+
+    .suggestion {
+      font-size: 12px;
+      padding: 6px 14px;
+      border: 0.5px solid var(--border2);
+      border-radius: 99px;
+      color: var(--text2);
+      background: var(--surface);
+      cursor: pointer;
+      font-family: var(--mono);
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .suggestion:hover { border-color: var(--accent-glow); color: var(--accent); }
+
+    /* Messages */
+    .msg { display: flex; gap: 12px; align-items: flex-start; animation: fadeUp 0.25s ease both; }
+    .msg.user { flex-direction: row-reverse; }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+    @keyframes fadeDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:none} }
+
+    .avatar {
+      width: 30px; height: 30px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 11px; font-family: var(--mono); font-weight: 500;
+    }
+
+    .avatar.ai { background: var(--accent-dim); border: 0.5px solid var(--accent-glow); color: var(--accent); }
+    .avatar.user { background: var(--surface2); border: 0.5px solid var(--border2); color: var(--text2); }
+
+    .bubble {
+      max-width: 72%;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      line-height: 1.7;
+      font-weight: 300;
+    }
+
+    .msg.ai .bubble {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-top-left-radius: 4px;
+      color: var(--text);
+    }
+
+    .msg.user .bubble {
+      background: var(--user-bg);
+      border: 0.5px solid var(--user-border);
+      border-top-right-radius: 4px;
+      color: var(--text);
+    }
+
+    .bubble-meta {
+      font-size: 10px;
+      font-family: var(--mono);
+      color: var(--text3);
+      margin-top: 6px;
+    }
+
+    /* Typing indicator */
+    .typing-bubble {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      border-top-left-radius: 4px;
+      padding: 14px 16px;
+      display: flex; gap: 5px; align-items: center;
+    }
+
+    .typing-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--text3);
+      animation: blink 1.2s infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+
+    /* Input */
+    .input-wrap {
+      padding: 16px 0 28px;
+      border-top: 0.5px solid var(--border);
+    }
+
+    .input-row {
+      display: flex; gap: 10px; align-items: flex-end;
+      background: var(--surface);
+      border: 0.5px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      transition: border-color 0.2s;
+    }
+
+    .input-row:focus-within { border-color: var(--accent-glow); }
+
+    #user-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 300;
+      color: var(--text);
+      resize: none;
+      height: 22px;
+      max-height: 120px;
+      line-height: 1.6;
+      overflow-y: hidden;
+    }
+
+    #user-input::placeholder { color: var(--text3); }
+
+    #send-btn {
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    #send-btn:hover { opacity: 0.85; }
+    #send-btn:active { transform: scale(0.95); }
+    #send-btn:disabled { opacity: 0.3; cursor: default; transform: none; }
+    #send-btn svg { width: 15px; height: 15px; stroke: #0d0f12; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    .input-hint {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text3);
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    /* Config notice */
+    #config-notice {
+      width: 100%; max-width: 760px;
+      margin: 16px 24px 0;
+      padding: 12px 16px;
+      background: rgba(255,180,0,0.06);
+      border: 0.5px solid rgba(255,180,0,0.2);
+      border-radius: var(--radius);
+      font-family: var(--mono);
+      font-size: 12px;
+      color: rgba(255,180,0,0.8);
+      display: flex; gap: 8px; align-items: flex-start;
+    }
+
+    #config-notice.hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="brand-name">bedrock<span>.</span>chat</div>
+      </div>
+      <div class="status-pill">
+        <div class="status-dot"></div>
+        claude haiku
+      </div>
+    </div>
+    <div class="meta-row">
+      <div class="tag">AWS Bedrock</div>
+      <div class="tag">Lambda</div>
+      <div class="tag">API Gateway</div>
+      <div class="tag">Serverless</div>
+    </div>
+  </header>
+
+  <div id="config-notice">
+    ⚠ Replace YOUR_API_GATEWAY_URL in the script below with your actual API Gateway endpoint URL.
+  </div>
+
+  <div id="chat-container">
+    <div id="messages">
+      <div class="empty-state" id="empty-state">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        </div>
+        <p>Start a conversation</p>
+        <div class="suggestions">
+          <div class="suggestion" onclick="fillInput('What is AWS Bedrock?')">What is AWS Bedrock?</div>
+          <div class="suggestion" onclick="fillInput('How does serverless work?')">How does serverless work?</div>
+          <div class="suggestion" onclick="fillInput('Tell me about Claude AI')">Tell me about Claude AI</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-wrap">
+      <div class="input-row">
+        <textarea id="user-input" placeholder="Message Bedrock Chat..." rows="1"></textarea>
+        <button id="send-btn" onclick="sendMessage()" disabled>
+          <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </div>
+      <div class="input-hint">Enter to send &nbsp;·&nbsp; Shift+Enter for new line</div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // IMPORTANT: Replace this with your API Gateway URL after deploy
+    // ============================================================
+    const API_URL = "/api/chat";
+    // ============================================================
+
+    let history = [];
+    const messagesEl = document.getElementById("messages");
+    const inputEl = document.getElementById("user-input");
+    const sendBtn = document.getElementById("send-btn");
+
+    // Hide config notice — URL is managed via env var on the server
+    document.getElementById("config-notice").classList.add("hidden");
+
+    // Auto-resize textarea
+    inputEl.addEventListener("input", () => {
+      inputEl.style.height = "22px";
+      inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + "px";
+      sendBtn.disabled = !inputEl.value.trim();
+    });
+
+    inputEl.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        if (!sendBtn.disabled) sendMessage();
+      }
+    });
+
+    function fillInput(text) {
+      inputEl.value = text;
+      inputEl.dispatchEvent(new Event("input"));
+      inputEl.focus();
+    }
+
+    function getTime() {
+      return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function addMessage(role, text) {
+      const empty = document.getElementById("empty-state");
+      if (empty) empty.remove();
+
+      const div = document.createElement("div");
+      div.className = `msg ${role}`;
+      div.innerHTML = `
+        <div class="avatar ${role}">${role === "ai" ? "AI" : "you"}</div>
+        <div>
+          <div class="bubble">${escapeHtml(text)}</div>
+          <div class="bubble-meta">${getTime()} · ${role === "ai" ? "Nova Lite via bedrock" : "you"}</div>
+        </div>
+      `;
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function showTyping() {
+      const div = document.createElement("div");
+      div.className = "msg ai";
+      div.id = "typing";
+      div.innerHTML = `
+        <div class="avatar ai">AI</div>
+        <div class="typing-bubble">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      `;
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function removeTyping() {
+      const el = document.getElementById("typing");
+      if (el) el.remove();
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\n/g, "<br>");
+    }
+
+    async function sendMessage() {
+      const message = inputEl.value.trim();
+      if (!message) return;
+
+      inputEl.value = "";
+      inputEl.style.height = "22px";
+      sendBtn.disabled = true;
+
+      addMessage("user", message);
+      showTyping();
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, history })
+        });
+
+        const data = await response.json();
+        removeTyping();
+
+        if (data.error) {
+          addMessage("ai", "Error: " + data.error);
+        } else {
+          addMessage("ai", data.reply);
+          // Update conversation history for context
+          // Nova Lite requires content as array of text objects
+          history.push({ role: "user", content: [{ text: message }] });
+          history.push({ role: "assistant", content: [{ text: data.reply }] });
+          // Keep history to last 10 turns to stay within token limits
+          if (history.length > 20) history = history.slice(-20);
+        }
+      } catch (err) {
+        removeTyping();
+        addMessage("ai", "Connection error. Make sure your API Gateway URL is configured correctly.");
+      }
+    }
+  </script>
+</body>
+</html>
